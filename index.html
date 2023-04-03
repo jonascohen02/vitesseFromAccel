@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        body {
+            overflow: hidden;
+        }
+        #contenerUiV {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 40px;
+        }
+        #contenerUiV p {
+            transition: all linear 0.5s;
+        }
+    </style>
+</head>
+<body style="background-color:lightblue;">
+    <h2>Ne peut fonctionner que sur IOS 13+</h2>
+    <button id="accelPermsButton"  style="height:50px;" onclick="getAccel()"><h1>Lancer lorsque vous êtes arrêtés</h1></button>
+    <div class="text" style="">Vitesse: <span id="vitesse"></span> m/s</div>
+    <div class="text" id="contenerUiV"><p id="pUIV"><span id="uiV">0,00</span> km/h</p></div>
+    <div class="text" style="">Vitesse X: <span id="vitesseX"></span> m/s</div>
+    <div class="text" style="">Vitesse Y: <span id="vitesseY"></span> m/s</div>
+    <div class="text" style="margin-bottom: 30px;">Vitesse Z: <span id="vitesseZ"></span> m/s</div>
+    
+    <div class="text" style="">X: <span id="x"></span> m/s</div>
+    <div class="text" style="">Y: <span id="y"></span> m/s</div>
+    <div class="text" style="">Z: <span id="z"></span> m/s</div>
+    <div class="text" style="">Norme: <span id="norme"></span> m/s</div>
+    
+    
+    <script>
+        const pUIv = document.getElementById("pUIV");
+        var lastControledNorme = 0;
+        var vitesse = {
+            norme:0,
+            x:0,
+            y:0,
+            z:0
+        }
+        var previousAcceleration = {
+            norme:0,
+            x:0,
+            y:0,
+            z:0
+        }
+        function getAccel(){
+            DeviceMotionEvent.requestPermission().then(response => {
+                if (response == 'granted') {
+
+                    console.log("accelerometer permission granted");
+
+
+                    // Fonction qui grossis ou degrossis le compteur toutes les 500ms
+                    // setInterval(function(){animateCompteur(previousAcceleration.norme)}, 500);
+
+
+                    // Fonction qui calcule la vitesse des 3 axes dès qu'une nouvelle mesure est recu grâce à l'intégrale de l'accélération
+                    window.addEventListener('devicemotion', (event) => {
+                        // Stockage des nouvelles mesures d'ACCELERATION
+                        const {x,y,z} = event.acceleration;
+                        const norme = (x**2 + y**2 + z**2)**(1/2)
+                        const interval = event.interval;
+                        const integrale = {};
+                        
+                        // Calcul des VITESSES de chaque axe par
+                        // calcul de l'intégral grâce à l'aire du rectangle avec l = interval et L = moyenne de la mesure précédente et nouvelle
+                        integrale.x = ((previousAcceleration.x+x)/2)*interval
+                        integrale.y = ((previousAcceleration.y+y)/2)*interval
+                        integrale.z = ((previousAcceleration.z+z)/2)*interval
+                        
+                        // Calcul de la norme de la VITESSE (en 3d)
+                        integrale.norme = (integrale.x**2 + integrale.y**2 + integrale.z**2)**(1/2)
+                        
+                        if (true) {
+                            vitesse.x += integrale.x;
+                            vitesse.y += integrale.y;
+                            vitesse.z += integrale.z;
+                            vitesse.norme = (vitesse.x**2 + vitesse.y**2 + vitesse.z**2)**(1/2);
+                        }
+                        // Conservation des mesures d'ACCELERATION pour le prochain calcul
+                        previousAcceleration.norme = norme;
+                        previousAcceleration.x = x;
+                        previousAcceleration.y = y;
+                        previousAcceleration.z = z;
+                        
+                        
+                        // Affichage des données
+                        document.getElementById("vitesse").innerHTML = vitesse.norme;
+                        document.getElementById("uiV").innerHTML = (vitesse.norme*3.6).toFixed(2).replace(".", ",");
+                        document.getElementById("vitesseX").innerHTML = vitesse.x;
+                        document.getElementById("vitesseY").innerHTML = vitesse.y;
+                        document.getElementById("vitesseZ").innerHTML = vitesse.z;
+                        
+                        document.getElementById("x").innerHTML = x;
+                        document.getElementById("y").innerHTML = y;
+                        document.getElementById("z").innerHTML = z;
+
+                    });
+                    
+                    
+                    
+                }
+            });
+        }
+        // Animation du compteur si norme de l'acceleration n'est pas négligeable
+        function animateCompteur(norme) {
+            if ((lastControledNorme-norme)**2 > 0.25) {
+                const Fformat = 0.3*norme**2+1;
+                pUIv.style.scale = (Fformat < 2 ? Fformat : 2);
+            } else {
+                pUIv.style.scale = 1
+            }
+            lastControledNorme = norme;
+        }
+    </script>
+</body>
+</html>
